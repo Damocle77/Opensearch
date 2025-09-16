@@ -1,0 +1,15 @@
+kibana_read_only:
+  reserved: true
+
+dataprepper:
+  reserved: true
+  cluster_permissions:
+    - "cluster:monitor"
+  index_permissions:
+    - index_patterns:
+        - "events-*"
+        - "http-logs-*"
+
+_meta:
+  type: "roles"
+  config_version: 2

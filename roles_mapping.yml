@@ -1,0 +1,23 @@
+_meta:
+  type: "rolesmapping"
+  config_version: 2
+
+all_access:
+  reserved: true
+  hidden: false
+  backend_roles:
+    - "admin"
+    - "logandaudit_admin"
+  hosts: []
+  users: []
+  and_backend_roles: []
+  description: "Maps admin to all_access"
+
+readall:
+  reserved: true
+  hidden: false
+  backend_roles:
+    - "readall"
+  hosts: []
+  users: []
+  and_backend_roles: []
