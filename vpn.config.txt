@@ -1,0 +1,30 @@
+cat server.conf
+local 192.168.129.3
+port 443
+proto tcp
+dev tun
+ca /etc/openvpn/ca.crt
+cert /etc/openvpn/vpn-iaas.crt
+key /etc/openvpn/vpn-iaas.key
+dh dh.pem
+auth SHA256
+
+#tls-crypt tc.key
+
+allow-compression no
+topology subnet
+tls-server
+server 192.168.255.0 255.255.255.0
+keepalive 10 60
+data-ciphers AES-256-GCM:AES-128-GCM:CHACHA20-POLY1305:AES-256-CBC
+data-ciphers-fallback AES-256-CBC
+persist-key
+persist-tun
+verb 3
+ping-timer-rem
+
+push "route 192.168.0.0 255.255.255.0"
+push "route 192.168.129.0 255.255.255.192"
+
+sndbuf 2097152
+rcvbuf 2097152
