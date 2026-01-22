@@ -1,0 +1,17 @@
+_meta:
+  type: "internalusers"
+  config_version: 2
+
+admin:
+  hash: "$2y$12$Z6JpHusb6H.A35EVwW1zneUA75r/5kGTVcBERwM4h0JGpWKOiQhEe"
+  reserved: true
+  backend_roles:
+    - "admin"
+  description: "admin"
+
+dataprepper:
+  hash: "$2y$12$Z6JpHusb6H.A35EVwW1zneUA75r/5kGTVcBERwM4h0JGpWKOiQhEe"
+  reserved: false
+  backend_roles:
+    - "admin"
+  description: "dataprepper user"
