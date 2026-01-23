@@ -1,4 +1,5 @@
-Guida pratica (Ubuntu 24.04.3) per installare **OpenSearch Dashboards 3.2.0** via **pacchetto `.deb`** e collegarlo a un cluster **OpenSearch 3.2.0** già configurato (TLS + Security plugin).
+Guida pratica (Ubuntu 24.04.3) per installare **OpenSearch Dashboards 3.2.0** via **pacchetto `.deb`** e 
+collegarlo a un cluster **OpenSearch 3.2.0** già configurato (TLS + Security plugin).
 
 > Obiettivo: avere Dashboards raggiungibile su **https://<IP_DASH>:5601** e connesso al cluster su **https://<IP_NODE>:9200**.  
 > Versioni: **Dashboards e OpenSearch devono combaciare** (3.2.0 ↔ 3.2.0).  
@@ -100,7 +101,8 @@ sudo chmod 644 /etc/opensearch-dashboards/certs/root-ca.pem
 ### 4.3 Crea un certificato server per Dashboards (firmato dalla tua CA)
 Esempio con SAN (IP + DNS). Adatta IP/DNS alla tua installazione.
 
-> Nota: questo richiede la **chiave privata** della CA (`root-ca-key.pem`). Se non vuoi tenerla su questa macchina, genera CSR qui e firma altrove.
+> Nota: questo richiede la **chiave privata** della CA (`root-ca-key.pem`). 
+Se non vuoi tenerla su questa macchina, genera CSR qui e firma altrove.
 
 ```bash
 cd /tmp
@@ -114,14 +116,19 @@ subjectAltName=IP:192.168.0.31,DNS:opensearch1,DNS:opensearch-dashboards
 EOF
 
 sudo openssl x509 -req -in dashboard.csr \
-  -CA /etc/opensearch/certs/root-ca.pem \
-  -CAkey /etc/opensearch/certs/root-ca-key.pem \
+  -CA root-ca.pem \
+  -CAkey root-ca-key.pem \
   -CAcreateserial -out dashboard-cert.pem -days 3650 -extfile dashboard.ext
   
 sudo mv dashboard-cert.pem dashboard-key.pem /etc/opensearch-dashboards/certs/
-sudo chown opensearch-dashboards:opensearch-dashboards /etc/opensearch-dashboards/certs/dashboard-*
+sudo chown opensearch-dashboards:opensearch-dashboards /etc/opensearch-dashboards/certs/*
 sudo chmod 600 /etc/opensearch-dashboards/certs/dashboard-key.pem
-sudo chmod 644 /etc/opensearch-dashboards/certs/dashboard-cert.pem
+
+# Creare una fullchain dashboard-cert.pem + root-ca.pem:
+
+cat dashboard-cert.pem root-ca.pem > dashboard-fullchain.pem
+sudo chown opensearch-dashboards:opensearch-dashboards /etc/opensearch-dashboard/certs/dashboard-fullcahin.pem
+sudo chmod 600 /etc/opensearch-dashboard/certs/dashboard-fullcahin.pem
 ```
 
 ---
@@ -147,12 +154,12 @@ sudo nano /etc/opensearch-dashboards/opensearch_dashboards.yml
 ### 5.2 Config “base” (TLS + cluster HTTPS)
 Esempio minimalista, **senza** OIDC (basic auth). Adatta IP/host.
 
-```yaml
+-------------------------------------------------------------------------------------------------------------
 server.host: 0.0.0.0
 server.port: 5601
 
 server.ssl.enabled: true
-server.ssl.certificate: /etc/opensearch-dashboards/certs/dashboard-cert.pem
+server.ssl.certificate: /etc/opensearch-dashboards/certs/dashboard-fullchain.pem
 server.ssl.key: /etc/opensearch-dashboards/certs/dashboard-key.pem
 
 opensearch.hosts:
@@ -165,15 +172,30 @@ opensearch.ssl.certificateAuthorities:
 
 # Consigliato: full (verifica hostname). Se usi IP e il certificato dei nodi non ha SAN IP,
 # puoi temporaneamente usare "certificate" mentre sistemi i SAN.
-opensearch.ssl.verificationMode: full
+opensearch.ssl.verificationMode: certificate
 
-# Basic auth (metti un utente appropriato; evitare "admin" in produzione)
-opensearch.username: "dashboards_svc"
-opensearch.password: "PASSWORD_FORTE"
-```
+# Basic auth (inserisci user e password di opensearch)
+opensearch.username: "admin"
+opensearch.password: "Temporanea.123!"
+
+opensearch.requestHeadersWhitelist:
+  - authorization
+  - securitytenant
+
+opensearch_security.enabled: true
+opensearch_security.multitenancy.enabled: true
+opensearch_security.multitenancy.tenants.enable_private: true
+opensearch_security.multitenancy.tenants.enable_global: true
+opensearch_security.multitenancy.tenants.preferred:
+  - Private
+  - Global
+
+# Use this setting if you are running opensearch-dashboards without https
+#opensearch_security.cookie.secure: false
+-------------------------------------------------------------------------------------------------------------
 
 > Se usi `verificationMode: full`, **hostnames e certificati devono combaciare** (SAN + DNS).  
-> Se sei in fase “bring-up” e i cert non hanno SAN corretti, `certificate` è spesso un compromesso temporaneo.
+> Se sei in fase “bring-up” e i cert non hanno SAN corretti, `certificate` è spesso un compromesso
 
 ---
 
@@ -208,7 +230,7 @@ sudo systemctl status opensearch-dashboards --no-pager
 Test porta locale:
 
 ```bash
-curl -k https://127.0.0.1:5601
+curl -vk https://192.168.0.31:5601
 ```
 
 Apri da browser:
@@ -239,20 +261,5 @@ sudo journalctl -u opensearch-dashboards -n 200 --no-pager
 - Metti Dashboards dietro reverse proxy (opzionale) con rate limit / WAF.
 - Abilita TLS moderno (`TLSv1.2`/`TLSv1.3`) se vuoi stringere le viti.
 
----
-
-## 10) Comandi “di rito” riassuntivi
-```bash
-# install
-sudo dpkg -i /tmp/opensearch-dashboards-3.2.0-linux-x64.deb || true
-sudo apt-get -f install -y
-
-# enable+start
-sudo systemctl daemon-reload
-sudo systemctl enable --now opensearch-dashboards
-
-# logs
-sudo journalctl -u opensearch-dashboards -f
-```
 ---
 
