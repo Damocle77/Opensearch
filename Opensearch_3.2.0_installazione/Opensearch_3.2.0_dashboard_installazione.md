@@ -153,7 +153,7 @@ sudo nano /etc/opensearch-dashboards/opensearch_dashboards.yml
 
 ### 5.2 Config “base” (TLS + cluster HTTPS)
 Esempio minimalista, **senza** OIDC (basic auth). Adatta IP/host.
-
+```
 -------------------------------------------------------------------------------------------------------------
 server.host: 0.0.0.0
 server.port: 5601
@@ -193,6 +193,7 @@ opensearch_security.multitenancy.tenants.preferred:
 # Use this setting if you are running opensearch-dashboards without https
 #opensearch_security.cookie.secure: false
 -------------------------------------------------------------------------------------------------------------
+```
 
 > Se usi `verificationMode: full`, **hostnames e certificati devono combaciare** (SAN + DNS).  
 > Se sei in fase “bring-up” e i cert non hanno SAN corretti, `certificate` è spesso un compromesso
